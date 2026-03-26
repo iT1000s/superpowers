@@ -99,6 +99,8 @@ This fills gaps the Story doesn't cover: exact import paths, existing function s
 # [Story Title] Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **CRITICAL — BMAD Story Sync:** After completing EACH Plan Task, you MUST update the corresponding BMAD Story Task/Subtask checkbox to `[x]`. After ALL tasks complete, update Story `Status:` to `review`. See the Task Mapping Table below.
 
 **Goal:** [From Story section: "As a X, I want Y, so that Z" — condensed to one sentence]
 
@@ -106,13 +108,22 @@ This fills gaps the Story doesn't cover: exact import paths, existing function s
 
 **Tech Stack:** [From Dev Notes technical baseline]
 
-**BMAD Story:** `[path-to-story-file]` (reference for full context)
+**BMAD Story:** `[path-to-story-file]` (reference for full context and status sync)
 
 **Acceptance Criteria:**
 [Copy the BDD-format ACs from Story — these are the ultimate validation targets]
 
 **Critical Implementation Guardrails:**
 [Extract key warnings from Dev Notes implementation guardrails]
+
+### Task Mapping (Plan ↔ BMAD Story)
+
+| Plan Task | BMAD Story Task/Subtask | Story Checkbox to Mark |
+|-----------|------------------------|------------------------|
+| Task 1 | Task X / Subtask X.Y | `- [ ] Subtask X.Y: ...` |
+| Task 2 | Task X / Subtask X.Z | `- [ ] Subtask X.Z: ...` |
+| ... | ... | ... |
+| Task [Final] | (Verification) | Mark parent `- [ ] Task X` when all subtasks done |
 
 ---
 ```
@@ -192,9 +203,9 @@ Some tasks are structural (e.g., "update index.ts exports") or validation-only (
 After all implementation tasks, add a final verification task:
 
 ```markdown
-### Task [Final]: End-to-End Verification
+### Task [Final]: End-to-End Verification & Story Completion
 
-**Context:** Validate all BMAD Acceptance Criteria are satisfied.
+**Context:** Validate all BMAD Acceptance Criteria are satisfied, then sync status back to BMAD Story.
 
 - [ ] **Step 1: Run full test suite**
   Run: `[build + test commands from Dev Notes]`
@@ -208,10 +219,60 @@ After all implementation tasks, add a final verification task:
 
 ...
 
-- [ ] **Step N: Commit final state**
+- [ ] **Step N-2: Commit final state**
+
+- [ ] **Step N-1: Sync BMAD Story Task checkboxes**
+  Open the BMAD Story file at `[story-path]`.
+  For each Plan Task completed above, mark the corresponding Story Task/Subtask checkbox `[x]` using the Task Mapping Table in the Plan header.
+  Verify: ALL Story Tasks/Subtasks have `[x]` — no unchecked items remain.
+
+- [ ] **Step N: Update BMAD Story status to review**
+  In the BMAD Story file:
+  1. Change `Status: ready-for-dev` (or `in-progress`) → `Status: review`
+  2. Fill `Dev Agent Record > Agent Model Used` with the model used
+  3. Fill `Dev Agent Record > Completion Notes List` with a summary of changes
+  4. Fill `Dev Agent Record > File List` with all created/modified/deleted files
+  5. Add a `Change Log` entry with date and summary
 ```
 
-## Step 6: Save and Review
+## Step 6: Execution-Phase Story Sync Rules
+
+**This section instructs the EXECUTING agent (not the plan-generating agent) on how to maintain BMAD Story state during plan execution.**
+
+The Plan header contains a Task Mapping Table and a CRITICAL reminder. The executing agent MUST follow these rules:
+
+### Per-Task Sync (after each Plan Task completes)
+
+1. Open the BMAD Story file (path in Plan header under `BMAD Story:`)
+2. Find the corresponding Story Task/Subtask using the Task Mapping Table
+3. Mark the checkbox `[x]` in the Story file
+4. If ALL subtasks of a parent BMAD Task are now `[x]`, also mark the parent Task `[x]`
+5. Save the Story file
+
+### Story Completion (after ALL Plan Tasks complete)
+
+This is the MOST CRITICAL step — without it, BMAD's downstream `code-review` skill cannot identify the Story as ready for review.
+
+1. **Verify ALL Story Tasks/Subtasks are `[x]`** — re-scan the entire Tasks section
+2. **Run full regression suite** — do not skip
+3. **Update Story Status:** Change `Status:` to `review`
+4. **Fill Dev Agent Record:**
+   - `Agent Model Used`: The model that performed the implementation
+   - `Completion Notes List`: Summary of what was implemented and tested
+   - `File List`: All new/modified/deleted files (paths relative to repo root)
+5. **Add Change Log entry:** `- YYYY-MM-DD: [Summary of implementation]`
+6. **Update sprint-status.yaml** (if it exists): Find the story key and update status to `review`
+
+### Red Flags During Execution
+
+| Situation | Action |
+|-----------|--------|
+| Plan Task done but forgot to mark Story checkbox | STOP. Go back and mark it NOW. |
+| All Plan Tasks done but Story Status still `ready-for-dev` | STOP. Update to `review` before declaring done. |
+| Story has unchecked Tasks but you want to finish | HALT. All checkboxes must be `[x]`. |
+| Sprint-status.yaml exists but wasn't updated | Go back and update it. |
+
+## Step 7: Save and Review
 
 **Save plan to:** `docs/superpowers/plans/YYYY-MM-DD-[story-key].md`
 - (User preferences for plan location override this default)
@@ -222,7 +283,7 @@ After all implementation tasks, add a final verification task:
 3. If ✅ Approved: proceed to execution handoff
 4. Max 3 iterations, then surface to human
 
-## Step 7: Execution Handoff
+## Step 8: Execution Handoff
 
 **"Plan complete and saved to `[path]`. Two execution options:**
 
@@ -237,6 +298,8 @@ After all implementation tasks, add a final verification task:
 
 **If Inline Execution chosen:**
 - **REQUIRED SUB-SKILL:** Use superpowers:executing-plans
+
+**CRITICAL REMINDER:** Whichever execution path is chosen, the executing agent MUST follow the Story Sync Rules in Step 6 above. The Plan header contains the Task Mapping Table and sync instructions.
 
 ## Task Granularity Guide
 
@@ -255,9 +318,13 @@ After all implementation tasks, add a final verification task:
 - `superpowers:writing-plans` — this skill IS the plan writing (adapted for BMAD input)
 
 **This skill feeds into:**
-- `superpowers:subagent-driven-development` — primary execution path
-- `superpowers:executing-plans` — alternative execution path
+- `superpowers:subagent-driven-development` — primary execution path (with Story sync)
+- `superpowers:executing-plans` — alternative execution path (with Story sync)
 - `superpowers:finishing-a-development-branch` — after all tasks complete
+
+**BMAD downstream compatibility:**
+- After execution completes and Story Status = `review`, BMAD's `bmad-code-review` skill can identify and review the Story
+- Story's Dev Agent Record provides traceability for the code review process
 
 ## Red Flags
 
