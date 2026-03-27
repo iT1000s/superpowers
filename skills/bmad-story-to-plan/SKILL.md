@@ -100,7 +100,7 @@ This fills gaps the Story doesn't cover: exact import paths, existing function s
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
-> **CRITICAL — BMAD Story Sync:** After completing EACH Plan Task, you MUST update the corresponding BMAD Story Task/Subtask checkbox to `[x]`. After ALL tasks complete, update Story `Status:` to `review`. See the Task Mapping Table below.
+> **CRITICAL — Dual Checkpoint:** After completing EACH Plan Task, you MUST: (1) Mark the Plan's own Step checkboxes `[x]`, AND (2) Update the corresponding BMAD Story Task/Subtask checkbox to `[x]`. After ALL tasks complete, update Story `Status:` to `review`. See the Task Mapping Table below and Step 6 for details.
 
 **Goal:** [From Story section: "As a X, I want Y, so that Z" — condensed to one sentence]
 
@@ -235,38 +235,41 @@ After all implementation tasks, add a final verification task:
   5. Add a `Change Log` entry with date and summary
 ```
 
-## Step 6: Execution-Phase Story Sync Rules
+## Step 6: Execution-Phase Dual Checkpoint Rules
 
-**This section instructs the EXECUTING agent (not the plan-generating agent) on how to maintain BMAD Story state during plan execution.**
+**This section instructs the EXECUTING agent (not the plan-generating agent) on how to maintain BOTH Plan and Story state during execution.**
 
 The Plan header contains a Task Mapping Table and a CRITICAL reminder. The executing agent MUST follow these rules:
 
-### Per-Task Sync (after each Plan Task completes)
+### Per-Task Checkpoint (after each Plan Task completes)
 
-1. Open the BMAD Story file (path in Plan header under `BMAD Story:`)
-2. Find the corresponding Story Task/Subtask using the Task Mapping Table
-3. Mark the checkbox `[x]` in the Story file
-4. If ALL subtasks of a parent BMAD Task are now `[x]`, also mark the parent Task `[x]`
-5. Save the Story file
+**You MUST update TWO files after completing each task:**
+
+1. **Mark the Plan file:** Change `- [ ]` to `- [x]` for ALL completed Steps within the current Plan Task. The Plan file is the executing agent's own tracking document — its checkboxes must reflect actual progress.
+2. **Mark the Story file:** Open the BMAD Story file (path in Plan header under `BMAD Story:`), find the corresponding Story Task/Subtask using the Task Mapping Table, and mark the checkbox `[x]`.
+3. If ALL subtasks of a parent BMAD Task are now `[x]`, also mark the parent Task `[x]` in the Story file.
+4. Save BOTH files.
 
 ### Story Completion (after ALL Plan Tasks complete)
 
 This is the MOST CRITICAL step — without it, BMAD's downstream `code-review` skill cannot identify the Story as ready for review.
 
-1. **Verify ALL Story Tasks/Subtasks are `[x]`** — re-scan the entire Tasks section
-2. **Run full regression suite** — do not skip
-3. **Update Story Status:** Change `Status:` to `review`
-4. **Fill Dev Agent Record:**
+1. **Verify ALL Plan Steps are `[x]`** — re-scan the entire Plan file, no unchecked steps should remain
+2. **Verify ALL Story Tasks/Subtasks are `[x]`** — re-scan the entire Tasks section in Story file
+3. **Run full regression suite** — do not skip
+4. **Update Story Status:** Change `Status:` to `review`
+5. **Fill Dev Agent Record:**
    - `Agent Model Used`: The model that performed the implementation
    - `Completion Notes List`: Summary of what was implemented and tested
    - `File List`: All new/modified/deleted files (paths relative to repo root)
-5. **Add Change Log entry:** `- YYYY-MM-DD: [Summary of implementation]`
-6. **Update sprint-status.yaml** (if it exists): Find the story key and update status to `review`
+6. **Add Change Log entry:** `- YYYY-MM-DD: [Summary of implementation]`
+7. **Update sprint-status.yaml** (if it exists): Find the story key and update status to `review`
 
 ### Red Flags During Execution
 
 | Situation | Action |
 |-----------|--------|
+| Plan Task done but Plan checkbox still `[ ]` | STOP. Mark Plan Steps `[x]` NOW. |
 | Plan Task done but forgot to mark Story checkbox | STOP. Go back and mark it NOW. |
 | All Plan Tasks done but Story Status still `ready-for-dev` | STOP. Update to `review` before declaring done. |
 | Story has unchecked Tasks but you want to finish | HALT. All checkboxes must be `[x]`. |
